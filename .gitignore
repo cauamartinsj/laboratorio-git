@@ -1,7 +1,13 @@
+
 node_modules/
 backend/node_modules/
 web/node_modules/
 mobile/node_modules/
+
 *.db*
 dist/
+.env
 backend/.env
+
+.venv/
+__pycache__/
