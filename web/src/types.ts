@@ -23,3 +23,17 @@ export interface Device {
   user: User;
   lastLocation?: Location | null;
 }
+
+export interface Alert {
+  id: string;
+  message: string;
+  status: 'PENDING' | 'VIEWED' | 'RESOLVED';
+  latitude?: number | null;
+  longitude?: number | null;
+  userId: string;
+  user: User;
+  deviceId?: string | null;
+  device?: Device | null;
+  createdAt: string;
+  updatedAt: string;
+}

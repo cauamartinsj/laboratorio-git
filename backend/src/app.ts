@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { authRouter } from './routes/auth';
 import { devicesRouter } from './routes/devices';
+import { alertsRouter } from './routes/alerts';
 
 dotenv.config();
 
@@ -22,3 +23,4 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRouter);
 app.use('/api/devices', devicesRouter);
+app.use('/api/alerts', alertsRouter);

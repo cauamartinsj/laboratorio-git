@@ -7,9 +7,67 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 export const authRouter = Router();
 
+const registerSchema = z.object({
+  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  email: z.string().email('E-mail inválido'),
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+});
+
 const loginSchema = z.object({
   email: z.string().email('E-mail inválido'),
   password: z.string().min(1, 'Senha é obrigatória'),
+});
+
+authRouter.post('/register', async (req: Request, res: Response) => {
+  try {
+    const { name, email, password } = registerSchema.parse(req.body);
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({ error: 'E-mail já está em uso' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: 'USER',
+      },
+    });
+
+    const secret = process.env.JWT_SECRET || 'super-secret-jwt-key-for-academic-tracking-system';
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+      },
+      secret,
+      { expiresIn: '7d' }
+    );
+
+    return res.status(201).json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors[0].message });
+    }
+    return res.status(500).json({ error: 'Erro ao registrar usuário' });
+  }
 });
 
 authRouter.post('/login', async (req: Request, res: Response) => {
