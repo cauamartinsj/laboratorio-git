@@ -60,6 +60,33 @@ describe('Backend API Integration Tests', () => {
   });
 
   describe('Auth Endpoints', () => {
+    it('deve cadastrar um novo usuário com sucesso', async () => {
+      const res = await request(app)
+        .post('/api/auth/register')
+        .send({
+          name: 'Novo Usuario',
+          email: 'novo@test.com',
+          password: 'password123',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.user.email).toBe('novo@test.com');
+      expect(res.body.user.role).toBe('USER');
+      expect(res.body.token).toBeDefined();
+    });
+
+    it('não deve permitir cadastro com e-mail duplicado', async () => {
+      const res = await request(app)
+        .post('/api/auth/register')
+        .send({
+          name: 'Duplicado',
+          email: 'novo@test.com',
+          password: 'password123',
+        });
+
+      expect(res.status).toBe(409);
+    });
+
     it('deve falhar login com senha incorreta', async () => {
       const res = await request(app)
         .post('/api/auth/login')
@@ -135,6 +162,66 @@ describe('Backend API Integration Tests', () => {
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
       expect(res.body.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Alerts Endpoints (SOS)', () => {
+    let alertId: string;
+
+    it('deve permitir usuário autenticado enviar um alerta de emergência', async () => {
+      const res = await request(app)
+        .post('/api/alerts')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          message: 'Preciso de ajuda urgente!',
+          deviceId,
+          latitude: -23.55052,
+          longitude: -46.633308,
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.message).toBe('Preciso de ajuda urgente!');
+      expect(res.body.status).toBe('PENDING');
+      expect(res.body.latitude).toBe(-23.55052);
+      expect(res.body.user.name).toBe('User Test');
+      alertId = res.body.id;
+    });
+
+    it('não deve permitir usuário comum acessar a lista geral de alertas', async () => {
+      const res = await request(app)
+        .get('/api/alerts')
+        .set('Authorization', `Bearer ${userToken}`);
+
+      expect(res.status).toBe(403);
+    });
+
+    it('deve permitir administrador listar alertas', async () => {
+      const res = await request(app)
+        .get('/api/alerts')
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.length).toBeGreaterThan(0);
+      expect(res.body[0].id).toBe(alertId);
+    });
+
+    it('deve permitir administrador atualizar status do alerta para VIEWED e RESOLVED', async () => {
+      const resViewed = await request(app)
+        .patch(`/api/alerts/${alertId}/status`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'VIEWED' });
+
+      expect(resViewed.status).toBe(200);
+      expect(resViewed.body.status).toBe('VIEWED');
+
+      const resResolved = await request(app)
+        .patch(`/api/alerts/${alertId}/status`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'RESOLVED' });
+
+      expect(resResolved.status).toBe(200);
+      expect(resResolved.body.status).toBe('RESOLVED');
     });
   });
 });

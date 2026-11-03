@@ -17,6 +17,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   devices Device[]
+  alerts  Alert[]
 }
 
 model Device {
@@ -31,6 +32,7 @@ model Device {
   updatedAt     DateTime @updatedAt
 
   locations Location[]
+  alerts    Alert[]
 }
 
 model Location {
@@ -42,4 +44,18 @@ model Location {
   collectedAt   DateTime
   receivedAt    DateTime @default(now())
   createdAt     DateTime @default(now())
+}
+
+model Alert {
+  id          String   @id @default(uuid())
+  message     String
+  status      String   @default("PENDING") // PENDING, VIEWED, RESOLVED
+  latitude    Float?
+  longitude   Float?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId    String?
+  device      Device?  @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
